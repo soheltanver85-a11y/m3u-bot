@@ -5,7 +5,7 @@ from threading import Thread
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-# Flask setup
+# Flask setup (Keep-alive এর জন্য)
 app = Flask('')
 
 @app.route('/')
@@ -19,10 +19,10 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-# Logging
+# Logging কনফিগারেশন
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-# এখানে আমরা সরাসরি কোডে টোকেন না লিখে GitHub Environment Variable ব্যবহার করছি
+# GitHub Secrets থেকে টোকেন সংগ্রহ
 TOKEN = os.environ.get('BOT_TOKEN')
 PASSWORD = "1199"
 authorized_users = set()
@@ -50,6 +50,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ ভুল পাসওয়ার্ড! আবার চেষ্টা করুন।")
         return
 
+    # M3U ফাইল প্রসেসিং
     file_name = f"playlist_{user_id}.m3u"
     try:
         with open(file_name, "w", encoding="utf-8") as f:
@@ -65,13 +66,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     if not TOKEN:
-        logging.error("No BOT_TOKEN found in environment variables!")
+        logging.error("BOT_TOKEN পাওয়া যায়নি! দয়া করে GitHub Secrets চেক করুন।")
         return
-    keep_alive()
+
+    keep_alive() # Flask সার্ভার চালু করা
+    
+    # বট অ্যাপ্লিকেশন তৈরি
     application = Application.builder().token(TOKEN).build()
+    
+    # হ্যান্ডলার যুক্ত করা
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    application.run_polling()
+    
+    print("বট চালু হচ্ছে...")
+    # drop_pending_updates=True দিলে আগের এররগুলোর জ্যাম ক্লিয়ার হবে
+    application.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
     main()
