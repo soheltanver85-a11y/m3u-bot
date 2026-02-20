@@ -5,7 +5,7 @@ from threading import Thread
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-# Flask setup for Render
+# Flask setup for Render/GitHub Actions
 app = Flask('')
 
 @app.route('/')
@@ -22,8 +22,10 @@ def keep_alive():
 # Logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-TOKEN = '7589940160:AAHlESyClR6Igukl7HoqeMq1UgXojLJ_u30'
+# এখানে আমরা GitHub Secrets থেকে টোকেন নিচ্ছি
+TOKEN = os.environ.get('BOT_TOKEN')
 PASSWORD = "1199"
+
 # অনুমোদিত ইউজারদের আইডি রাখার জন্য একটি সেট
 authorized_users = set()
 
@@ -38,11 +40,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_text = update.message.text
 
-    # যদি ইউজার এখনো পাসওয়ার্ড না দিয়ে থাকে
     if user_id not in authorized_users:
         if user_text == PASSWORD:
             authorized_users.add(user_id)
-            # পাসওয়ার্ড মেসেজটি ডিলিট করে দেওয়া (সিকিউরিটির জন্য)
             try:
                 await update.message.delete()
             except:
@@ -52,7 +52,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ ভুল পাসওয়ার্ড! আবার চেষ্টা করুন।")
         return
 
-    # পাসওয়ার্ড ভেরিফাইড ইউজারদের জন্য M3U প্রসেসিং
     file_name = f"playlist_{user_id}.m3u"
     try:
         with open(file_name, "w", encoding="utf-8") as f:
@@ -67,10 +66,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             os.remove(file_name)
 
 def main():
+    # টোকেন চেক করার জন্য একটি ছোট সিকিউরিটি
+    if not TOKEN:
+        print("Error: No BOT_TOKEN found in environment variables!")
+        return
+
     keep_alive()
     application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    
+    print("Bot is starting...")
     application.run_polling()
 
 if __name__ == "__main__":
