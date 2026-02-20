@@ -5,12 +5,12 @@ from threading import Thread
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-# Flask setup (Keep-alive এর জন্য)
+# Flask setup (সার্ভার সচল রাখার জন্য)
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "Bot is alive!"
+    return "Bot is running!"
 
 def run():
     app.run(host='0.0.0.0', port=8080)
@@ -22,7 +22,7 @@ def keep_alive():
 # Logging কনফিগারেশন
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-# GitHub Secrets থেকে টোকেন সংগ্রহ
+# GitHub Secrets থেকে নিরাপদে টোকেন সংগ্রহ
 TOKEN = os.environ.get('BOT_TOKEN')
 PASSWORD = "1199"
 authorized_users = set()
@@ -30,7 +30,7 @@ authorized_users = set()
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if user_id in authorized_users:
-        await update.message.reply_text("আপনি অলরেডি অনুমোদিত। আপনার M3U টেক্সট পাঠান।")
+        await update.message.reply_text("আপনি ইতিমধ্যে অনুমোদিত। আপনার M3U টেক্সট পাঠান।")
     else:
         await update.message.reply_text("স্বাগতম! এই বটটি ব্যবহার করতে পাসওয়ার্ড দিন।")
 
@@ -50,7 +50,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ ভুল পাসওয়ার্ড! আবার চেষ্টা করুন।")
         return
 
-    # M3U ফাইল প্রসেসিং
+    # M3U ফাইল জেনারেট করা
     file_name = f"playlist_{user_id}.m3u"
     try:
         with open(file_name, "w", encoding="utf-8") as f:
@@ -66,20 +66,20 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def main():
     if not TOKEN:
-        logging.error("BOT_TOKEN পাওয়া যায়নি! দয়া করে GitHub Secrets চেক করুন।")
+        logging.error("বট টোকেন পাওয়া যায়নি। GitHub Secrets চেক করুন।")
         return
 
-    keep_alive() # Flask সার্ভার চালু করা
+    keep_alive() # Flask সার্ভার চালু
     
     # বট অ্যাপ্লিকেশন তৈরি
     application = Application.builder().token(TOKEN).build()
     
-    # হ্যান্ডলার যুক্ত করা
+    # কমান্ড এবং মেসেজ হ্যান্ডলার যুক্ত করা
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     
     print("বট চালু হচ্ছে...")
-    # drop_pending_updates=True দিলে আগের এররগুলোর জ্যাম ক্লিয়ার হবে
+    # Conflict এরর এড়াতে drop_pending_updates=True ব্যবহার করা হয়েছে
     application.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
