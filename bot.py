@@ -5,7 +5,7 @@ from threading import Thread
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-# Flask setup for Render/GitHub Actions
+# Flask setup
 app = Flask('')
 
 @app.route('/')
@@ -22,11 +22,9 @@ def keep_alive():
 # Logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-# এখানে আমরা GitHub Secrets থেকে টোকেন নিচ্ছি
+# এখানে আমরা সরাসরি কোডে টোকেন না লিখে GitHub Environment Variable ব্যবহার করছি
 TOKEN = os.environ.get('BOT_TOKEN')
 PASSWORD = "1199"
-
-# অনুমোদিত ইউজারদের আইডি রাখার জন্য একটি সেট
 authorized_users = set()
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -66,17 +64,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             os.remove(file_name)
 
 def main():
-    # টোকেন চেক করার জন্য একটি ছোট সিকিউরিটি
     if not TOKEN:
-        print("Error: No BOT_TOKEN found in environment variables!")
+        logging.error("No BOT_TOKEN found in environment variables!")
         return
-
     keep_alive()
     application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    
-    print("Bot is starting...")
     application.run_polling()
 
 if __name__ == "__main__":
